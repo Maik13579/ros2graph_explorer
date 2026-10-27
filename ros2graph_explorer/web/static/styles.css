@@ -288,6 +288,7 @@ header h1 {
 
 #canvasContainer {
   position: relative;
+  isolation: isolate;
   flex: 1;
   min-height: 0;
   width: 100%;
