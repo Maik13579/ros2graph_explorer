@@ -1,6 +1,7 @@
 const STORAGE_GENERAL_SETTINGS_KEY = 'ros2graph_explorer.settings.general';
 
 export const DEFAULT_GENERAL_SETTINGS = Object.freeze({
+  graphAutoRefresh: true,
   graphRefreshIntervalMs: 2000,
   streamAutoRefresh: true,
   echoRefreshIntervalMs: 1000,
@@ -99,6 +100,7 @@ export class GeneralSettingsManager {
 
 function sanitizeState(state) {
   const sanitized = { ...DEFAULT_GENERAL_SETTINGS };
+  sanitized.graphAutoRefresh = state.graphAutoRefresh !== false;
   sanitized.graphRefreshIntervalMs = clampInterval(
     toInteger(state.graphRefreshIntervalMs, DEFAULT_GENERAL_SETTINGS.graphRefreshIntervalMs),
     LIMITS.graphRefreshIntervalMs,
@@ -151,6 +153,7 @@ function clampInterval(value, { min, max }) {
 
 function statesEqual(a, b) {
   return (
+    a.graphAutoRefresh === b.graphAutoRefresh &&
     a.graphRefreshIntervalMs === b.graphRefreshIntervalMs &&
     a.streamAutoRefresh === b.streamAutoRefresh &&
     a.echoRefreshIntervalMs === b.echoRefreshIntervalMs &&

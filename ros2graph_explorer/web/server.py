@@ -28,7 +28,10 @@ class _ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
 class GraphWebServer:
     """Lightweight HTTP server that serves graph data and a simple UI."""
 
-    def __init__(self, host: str, port: int, logger, topic_tool_handler=None, node_tool_handler=None) -> None:
+    def __init__(
+        self, host: str, port: int, logger, topic_tool_handler=None,
+        node_tool_handler=None, auto_refresh_handler=None,
+    ) -> None:
         self._host = host
         self._port = port
         self._logger = logger
@@ -43,6 +46,7 @@ class GraphWebServer:
         self._running = False
         self._topic_tool_handler = topic_tool_handler
         self._node_tool_handler = node_tool_handler
+        self._auto_refresh_handler = auto_refresh_handler
 
     def _create_handler(self):
         parent = self
@@ -240,6 +244,9 @@ class GraphWebServer:
             ),
             'generated_at': generated_at if generated_at is not None else time.time(),
             'graph': graph_dict,
+            'web_auto_refresh': (
+                bool(self._auto_refresh_handler()) if self._auto_refresh_handler else True
+            ),
             'visible_counts': {
                 'nodes': len(visible.nodes), 'topics': len(visible.topics),
                 'edges': len(visible.edges),

@@ -61,6 +61,7 @@ class Ros2GraphNode(Node):
         self.declare_parameter("update_interval", 2.0)
         self.declare_parameter("print_once", False)
         self.declare_parameter("web_enable", True)
+        self.declare_parameter('web_auto_refresh', True)
         self.declare_parameter("web_host", "0.0.0.0")
         self.declare_parameter("web_port", 8734)
         self.declare_parameter("parameter_service_timeout", PARAMETER_SERVICE_TIMEOUT)
@@ -91,6 +92,7 @@ class Ros2GraphNode(Node):
                     self.get_logger(),
                     topic_tool_handler=self._handle_topic_tool_request,
                     node_tool_handler=self._handle_node_tool_request,
+                    auto_refresh_handler=lambda: self.get_parameter('web_auto_refresh').value,
                 )
                 self._web_server.start()
             except OSError as exc:

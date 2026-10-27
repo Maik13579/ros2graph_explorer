@@ -84,7 +84,10 @@ def test_invalid_filters(filters):
 
 def test_filtered_http_layout_preserves_inventory(snapshot):
     """Serve a compact filtered layout and full inventory to independent clients."""
-    server = GraphWebServer('127.0.0.1', 0, Mock())
+    settings = {'auto_refresh': False}
+    server = GraphWebServer(
+        '127.0.0.1', 0, Mock(), auto_refresh_handler=lambda: settings['auto_refresh'],
+    )
     server.publish(snapshot, snapshot.fingerprint())
     server.start()
     base_url = f'http://127.0.0.1:{server._server.server_port}'
@@ -97,6 +100,7 @@ def test_filtered_http_layout_preserves_inventory(snapshot):
         with urlopen(request, timeout=5) as response:
             filtered = json.load(response)
         graph = filtered['graph']
+        assert filtered['web_auto_refresh'] is False
         assert graph['nodes'] == sorted(snapshot.nodes)
         assert graph['topics'] == snapshot.to_dict()['topics']
         assert '/robot/camera' not in graph['graphviz']['ids']
@@ -106,8 +110,10 @@ def test_filtered_http_layout_preserves_inventory(snapshot):
         if server._dot_path:
             assert 'plain' in graph['graphviz']
             assert '/robot/camera' not in graph['graphviz']['plain']
+        settings['auto_refresh'] = True
         with urlopen(base_url + '/graph?layout=simple', timeout=5) as response:
             full = json.load(response)
+        assert full['web_auto_refresh'] is True
         assert '/robot/camera' in full['graph']['graphviz']['ids']
         assert full['fingerprint'] == snapshot.fingerprint()
         assert filtered['fingerprint'] != full['fingerprint']

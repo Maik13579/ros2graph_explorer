@@ -1,5 +1,6 @@
 import { getNodeSummary, getTopicSummary } from '../data/graphSelectors.js';
 import { formatHz, formatBytesPerSecond, formatBytes } from '../utils/format.js';
+import { ParameterTree } from '../ui/parameterTree.js';
 
 const FEATURE_FIELDS = ['name', 'class', 'version', 'gui_version', 'state'];
 const FEATURE_LABELS = {
@@ -39,6 +40,7 @@ export class ActionController {
     this.topicEcho = topicEcho;
     this.topicPlot = topicPlot;
     this.nodeFeatureCache = new Map();
+    this.parameterViews = new Map();
     if (this.overlay?.setActionHandler) {
       this.overlay.setActionHandler(action => this.handleOverlayAction(action));
     }
@@ -105,25 +107,37 @@ export class ActionController {
   presentParameters(nodeName, payload) {
     const parameters = Array.isArray(payload?.parameters) ? payload.parameters : [];
     const overlayId = nodeParametersOverlayId(nodeName);
-    const rows = parameters.map(entry => ({
-      cells: [entry.name ?? '(unknown)', summarizeValue(entry.value)],
-      action: { type: 'edit-parameter', nodeName, parameter: entry },
-    }));
+    let view = this.parameterViews.get(nodeName);
+    const isNew = !view;
+    if (!view) {
+      view = new ParameterTree(parameter => {
+        void this.handleOverlayAction({ type: 'edit-parameter', nodeName, parameter });
+      });
+      this.parameterViews.set(nodeName, view);
+    }
+    view.update(parameters);
     this.overlay?.show(
       {
-        title: `Parameters (${rows.length})`,
+        title: `Parameters (${parameters.length})`,
         subtitle: nodeName,
         sections: [
           {
-            type: 'table',
-            headers: ['Name', 'Value'],
-            rows,
+            type: 'custom',
+            className: 'parameter-browser-section',
+            render: container => {
+              container.append(view.root);
+              if (isNew) {
+                container.closest('.overlay-panel')?.addEventListener('overlaypanel:close', () => {
+                  this.parameterViews.delete(nodeName);
+                }, { once: true });
+              }
+            },
           },
         ],
       },
       { id: overlayId },
     );
-    this.statusBar?.setStatus(`Parameters for ${nodeName}: ${rows.length} found`);
+    this.statusBar?.setStatus(`Parameters for ${nodeName}: ${parameters.length} found`);
   }
 
   async showNodeServices(nodeName) {
@@ -442,24 +456,6 @@ function buildFeatureSectionsFromParameters(parameters) {
     });
 
   return sections;
-}
-
-function summarizeValue(value) {
-  if (value === null || value === undefined) {
-    return '';
-  }
-  if (typeof value === 'string') {
-    return value;
-  }
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return String(value);
-  }
-  try {
-    const json = JSON.stringify(value);
-    return json.length > 48 ? `${json.slice(0, 45)}…` : json;
-  } catch (error) {
-    return String(value);
-  }
 }
 
 function formatTypes(types) {

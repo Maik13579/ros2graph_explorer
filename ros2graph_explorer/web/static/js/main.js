@@ -34,6 +34,7 @@ const settingsOverlay = document.getElementById('settingsOverlay');
 const settingsOverlayDialog = document.getElementById('settingsOverlayDialog');
 const settingsOverlayClose = document.getElementById('settingsOverlayClose');
 const settingsOverlayBody = document.getElementById('settingsOverlayBody');
+let nodeAutoRefreshEnabled = true;
 
 const {
   form: settingsForm,
@@ -57,7 +58,8 @@ generalSettings.subscribe(state => {
   updateSettingsForm({ generalState: generalSettingsState });
   renderer.setEdgeLineStyle(state.edgeLineStyle);
   renderer.setBezierSmoothness(state.bezierSmoothness);
-  if (state.graphRefreshIntervalMs !== previous.graphRefreshIntervalMs) {
+  if (state.graphRefreshIntervalMs !== previous.graphRefreshIntervalMs ||
+      state.graphAutoRefresh !== previous.graphAutoRefresh) {
     scheduleNextRefresh();
   }
   if (state.layoutMode !== previous.layoutMode) {
@@ -183,6 +185,13 @@ function ensureSettingsForm(container) {
           aria-labelledby="settingsTabGeneral"
         >
           <div class="settings-form__group">
+            <label class="settings-form__toggle">
+              <input type="checkbox" id="generalGraphAuto">
+              <div class="settings-form__toggle-content">
+                <span>Automatically refresh graph</span>
+                <p class="settings-form__hint" id="generalGraphAutoHint">Disable to update the graph with Refresh now.</p>
+              </div>
+            </label>
             <div class="settings-form__field">
               <label for="generalGraphRefresh">Graph refresh rate (ms)</label>
               <input type="number" id="generalGraphRefresh" min="500" max="60000" step="100">
@@ -380,6 +389,8 @@ function ensureSettingsForm(container) {
     graphLabelText: container.querySelector('#customGraphLabelText'),
   };
   const generalInputs = {
+    graphAuto: container.querySelector('#generalGraphAuto'),
+    graphAutoHint: container.querySelector('#generalGraphAutoHint'),
     graphRefresh: container.querySelector('#generalGraphRefresh'),
     layoutMode: container.querySelector('#generalLayoutMode'),
     edgeLineStyle: container.querySelector('#generalEdgeLineStyle'),
@@ -480,9 +491,17 @@ function updateSettingsForm({ themeState = themeManager.getState(), generalState
   if (generalInputs) {
     const generalStateSafe = generalState ?? DEFAULT_GENERAL_SETTINGS;
     const manualDisabled = Boolean(generalStateSafe.streamAutoRefresh);
+    if (generalInputs.graphAuto) {
+      generalInputs.graphAuto.checked = nodeAutoRefreshEnabled && generalStateSafe.graphAutoRefresh;
+      generalInputs.graphAuto.disabled = !nodeAutoRefreshEnabled;
+      generalInputs.graphAutoHint.textContent = nodeAutoRefreshEnabled
+        ? 'Disable to update the graph with Refresh now.'
+        : 'Automatic graph refresh is disabled by web_auto_refresh on the ROS node.';
+    }
     if (generalInputs.graphRefresh) {
       generalInputs.graphRefresh.value =
         generalStateSafe.graphRefreshIntervalMs ?? DEFAULT_GENERAL_SETTINGS.graphRefreshIntervalMs;
+      generalInputs.graphRefresh.disabled = !nodeAutoRefreshEnabled || !generalStateSafe.graphAutoRefresh;
     }
     if (generalInputs.layoutMode) {
       generalInputs.layoutMode.value =
@@ -521,6 +540,10 @@ function updateSettingsForm({ themeState = themeManager.getState(), generalState
 function handleGeneralSettingsControl(target) {
   if (!target || !generalInputs) {
     return false;
+  }
+  if (target === generalInputs.graphAuto) {
+    generalSettings.update({ graphAutoRefresh: Boolean(target.checked) });
+    return true;
   }
   if (target === generalInputs.streamAuto) {
     generalSettings.update({ streamAutoRefresh: Boolean(target.checked) });
@@ -769,6 +792,12 @@ function scheduleNextRefresh() {
   if (refreshTimer) {
     window.clearTimeout(refreshTimer);
   }
+  refreshTimer = null;
+  const autoRefresh = nodeAutoRefreshEnabled && generalSettingsState.graphAutoRefresh;
+  setText(document.getElementById('footer'), autoRefresh
+    ? 'Data source: /graph endpoint (automatic refresh enabled)'
+    : 'Data source: /graph endpoint (automatic refresh off — use Refresh now)');
+  if (!autoRefresh) return;
   const interval =
     generalSettingsState?.graphRefreshIntervalMs ??
     DEFAULT_GENERAL_SETTINGS.graphRefreshIntervalMs ??
@@ -791,6 +820,8 @@ async function loadGraph({ manual = false, silent = false } = {}) {
       layoutMode: generalSettingsState?.layoutMode, filters: graphFilters.getState(),
     });
     if (requestId !== graphRequestId) return;
+    nodeAutoRefreshEnabled = payload.web_auto_refresh !== false;
+    updateSettingsForm();
     const graph = payload.graph ?? payload;
     const changed = store.setGraph(graph, payload.fingerprint);
     const nodeCount = `${payload.visible_counts?.nodes ?? graph.nodes?.length ?? 0}/${graph.nodes?.length ?? 0}`;

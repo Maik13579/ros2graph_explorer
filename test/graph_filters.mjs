@@ -101,3 +101,35 @@ test('graph API sends filters in a POST body and preserves unfiltered GET reques
   assert.equal(requests[1].method, 'GET');
   assert.equal(requests[1].body, undefined);
 });
+
+test('graph auto refresh defaults to enabled for existing saved preferences', async () => {
+  const { GeneralSettingsManager } = await import(await browserModuleUrl(new URL('state/generalSettingsManager.js', jsRoot)));
+  const settings = new GeneralSettingsManager({ storage: { getItem: () => '{"graphRefreshIntervalMs":1500}' } });
+  settings.init();
+  assert.equal(settings.getState().graphAutoRefresh, true);
+  assert.equal(settings.getState().graphRefreshIntervalMs, 1500);
+});
+
+test('manual graph refresh preference persists independently of echo and plot settings', async () => {
+  const { GeneralSettingsManager } = await import(await browserModuleUrl(new URL('state/generalSettingsManager.js', jsRoot)));
+  const storage = { value: null, getItem() { return this.value; }, setItem(key, value) { this.value = value; } };
+  const settings = new GeneralSettingsManager({ storage });
+  settings.update({ graphAutoRefresh: false });
+  const restored = new GeneralSettingsManager({ storage });
+  restored.init();
+  assert.equal(restored.getState().graphAutoRefresh, false);
+  assert.equal(restored.getState().streamAutoRefresh, true);
+  restored.update({ graphRefreshIntervalMs: 3000 });
+  assert.equal(restored.getState().graphAutoRefresh, false);
+});
+
+test('graph refresh toggle notifies subscribers on disable and re-enable', async () => {
+  const { GeneralSettingsManager } = await import(await browserModuleUrl(new URL('state/generalSettingsManager.js', jsRoot)));
+  const settings = new GeneralSettingsManager({ storage: {} });
+  const changes = [];
+  settings.subscribe(state => changes.push(state.graphAutoRefresh));
+  settings.update({ graphAutoRefresh: false });
+  settings.update({ graphAutoRefresh: false });
+  settings.update({ graphAutoRefresh: true });
+  assert.deepEqual(changes, [false, true]);
+});

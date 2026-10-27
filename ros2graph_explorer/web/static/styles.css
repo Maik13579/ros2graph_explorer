@@ -495,6 +495,95 @@ header h1 {
   font-size: 0.95rem;
 }
 
+.parameter-browser-section {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.parameter-browser {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+  min-height: 220px;
+}
+
+.parameter-browser__count,
+.parameter-browser__empty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(var(--text-rgb), 0.7);
+}
+
+.parameter-tree {
+  overflow: auto;
+  max-height: 55vh;
+  min-height: 150px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.85rem;
+}
+
+.parameter-tree__heading {
+  padding: 0.5rem 0.25rem;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.parameter-tree__group-count {
+  color: rgba(var(--text-rgb), 0.6);
+  font-weight: normal;
+}
+
+.parameter-tree__children {
+  margin-left: 0.5rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid rgba(var(--accent-secondary-rgb), 0.3);
+}
+
+.parameter-tree__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  align-items: start;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid transparent;
+  text-align: left;
+  font: inherit;
+}
+
+.parameter-tree__row:hover,
+.parameter-tree__heading:hover {
+  background: rgba(var(--accent-secondary-rgb), 0.12);
+}
+
+.parameter-tree__row:focus-visible,
+.parameter-tree__heading:focus-visible {
+  outline: 2px solid var(--accent-secondary);
+  outline-offset: -2px;
+}
+
+.parameter-tree__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.parameter-tree__type {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+  color: rgba(var(--text-rgb), 0.6);
+}
+
+.parameter-tree__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--accent-secondary);
+}
+
 .overlay-panel__code {
   margin: 0;
   padding: 0.65rem 0.8rem;

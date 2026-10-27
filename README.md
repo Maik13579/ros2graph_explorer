@@ -93,15 +93,15 @@ interaction.
 Click **Filters** at the bottom right to choose which nodes and topics appear.
 Switch between the **Nodes** and **Topics** tabs to give the active lists more
 space. Each tab keeps its search and namespace expansion state, with searchable
-**Included** and **Hidden** namespace trees. Expand a
-namespace with its disclosure arrow. Check an item to include it, or uncheck it
+**Included** and **Hidden** namespace trees. Expand a namespace with its
+disclosure arrow. Check an item to include it, or uncheck it
 to hide it; it moves to the other tree immediately. A namespace checkbox applies
 to its whole branch, including items discovered later. Individual items can
 override a namespace rule. **Include all** and **Hide all** reset the entire
 section, including any individual exceptions; search only narrows the lists.
 
-In the Topics tab, enable **Hide topics without subscribers** to remove topics with no subscribers
-in the full known graph. Hidden subscribers still count. These automatically
+In the Topics tab, enable **Hide topics without subscribers** to remove topics
+with no subscribers in the full known graph. Hidden subscribers still count. These automatically
 hidden topics remain listed with a reason; turn off the option to include them.
 The option continues to apply when using **Include all** for topics.
 
@@ -113,7 +113,8 @@ the visualization only; ROS nodes, subscriptions, and other browsers are unaffec
 ### Settings Menu
 
 Click the gear button in the header to open the full-screen settings overlay. The **General**
-tab lets you tune how aggressively the app refreshes data: set the graph polling period,
+tab lets you tune how aggressively the app refreshes data: turn off **Automatically
+refresh graph** to use **Refresh now** for manual updates, set the graph polling period,
 select the graph layout source (auto, ROS tooling/rqt-style, or built-in simple),
 decide whether topic echoes/plots update on every new snapshot, and provide fallback
 intervals (250–10 000 ms) when automatic streaming is disabled. The **Theme** tab switches
@@ -121,6 +122,15 @@ between light, dark, and a fully custom palette. Custom mode exposes color picke
 canvas, overlays, nodes, topics, and edges, plus a base scheme selector; changes apply
 instantly and are persisted in `localStorage` so your palette is reused on the next visit.
 ![General settings](doc/settings.png)
+
+The ROS parameter `web_auto_refresh` also controls whether browsers may poll the
+graph automatically. Disable it at startup with
+`ros2 run ros2graph_explorer ros2graph_explorer --ros-args -p web_auto_refresh:=false`,
+or at runtime with `ros2 param set /ros2graph_explorer web_auto_refresh false`.
+Connected browsers stop polling after their next graph response. **Refresh now**
+always works; use it to pick up a later parameter change back to `true` while
+polling is stopped. The browser's own preference is saved independently. Topic
+echoes and plots keep their separate refresh controls.
 
 
 ### Topic Plotting
@@ -151,14 +161,19 @@ interval you configured.
 
 ### Parameter Editor
 1. Right-click a node → **Parameters**.
-2. A table lists every declared parameter (name, value, type).
-3. **Single-click** any value to open the parameter editor.
+2. Parameters appear in a collapsible tree grouped at each `.` in their names
+   (for example, `controller.pid.kp` appears under **controller → pid → kp**).
+   Expand groups to see parameter values and types.
+3. Search by full parameter name, group, or value. Matching branches expand
+   automatically; clearing the search restores your previous expanded groups.
+   **Single-click** a parameter row to open the parameter editor.
    - The modal pulls `DescribeParameters` so types, constraints, and descriptions are
      displayed.
    - Inputs are tailored to the type (booleans become toggles, numbers use numeric
      fields, arrays expect JSON).
 4. Submit to call `set_parameter`. Success triggers an immediate refresh so you can see
-   the new value reflected in the table.
+   the new value reflected in the tree. The search and expanded groups are
+   preserved while the parameter window stays open.
 
 ![Parameter list](doc/node_params.png)
 ![Parameter editor](doc/set_param.png)
@@ -378,6 +393,7 @@ All responses use JSON; on failure you'll get an HTTP error code with an `error`
 | `update_interval` | `2.0` | Seconds between graph samples (≥ 0.1). |
 | `print_once` | `false` | Exit after publishing the first snapshot. |
 | `web_enable` | `true` | Start the embedded HTTP server and web UI. |
+| `web_auto_refresh` | `true` | Allow automatic browser graph refresh; `false` leaves manual refresh available. Takes effect on the next graph request. |
 | `web_host` | `0.0.0.0` | Host interface for the server. |
 | `web_port` | `8734` | HTTP port. |
 | `parameter_service_timeout` | `5.0` | Timeout (seconds) for parameter/service RPCs. |
@@ -387,8 +403,9 @@ All responses use JSON; on failure you'll get an HTTP error code with an `error`
 ## Extending & Contributing
 
 Run Python tests with the package's `colcon test` command. Run the browser filter
-logic tests with `node test/graph_filters.mjs` (Node.js 18 or newer). The lint test
-uses `test/flake8_baseline.json` to recognize the 755 existing upstream diagnostics
+logic tests with `node test/graph_filters.mjs` (Node.js 18 or newer), and parameter
+tree tests with `node test/parameter_tree.mjs`. The lint test uses
+`test/flake8_baseline.json` to recognize the 755 existing upstream diagnostics
 from commit `9a046bd` by file, diagnostic code, and source text. New diagnostics
 still fail; remove baseline entries as inherited code is cleaned up.
 
