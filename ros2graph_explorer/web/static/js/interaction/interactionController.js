@@ -306,12 +306,14 @@ export class InteractionController {
       }
       const target = this.resolveTarget(event);
       if (target) {
-        const mode = event.ctrlKey || event.metaKey ? 'toggle' : event.shiftKey ? 'add' : 'replace';
+        const toggle = event.ctrlKey || event.metaKey ||
+          (!event.shiftKey && this.activeSelections.has(getTargetKey(target)));
+        const mode = toggle ? 'toggle' : event.shiftKey ? 'add' : 'replace';
         this.selectTarget(target, mode);
         this.store.setHover(this.expandHover(target));
         this.options.topicEcho?.stop?.({ quiet: true });
       } else {
-        this.store.resetSelection();
+        this.store.setHover(null);
         this.options.topicEcho?.stop?.({ quiet: true });
         const point = this.getCanvasPoint(event);
         this.view.beginPan(event.pointerId, point);

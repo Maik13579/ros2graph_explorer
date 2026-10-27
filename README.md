@@ -63,8 +63,10 @@ interaction.
 
 - **Pan** – Click-and-drag anywhere that isn’t labelled to move the viewport.
 - **Zoom** – Use the mouse wheel or trackpad scroll. The view zooms around the cursor.
-- **Select** – Left-click a node or topic edge to highlight it. Selections persist so you
-  can compare relationships.
+- **Select** – Left-click a node, topic, or topic edge to highlight it. Click the
+  same item again to deselect it. Background clicks, panning, and zooming preserve
+  the selection. Shift-click adds an item; Ctrl/⌘-click toggles it. Press `Esc`
+  to clear all selections.
 - **Hover hints** – Move the mouse over nodes or edges to preview connections; the status
   banner summarises the focused element.
 - **Context menu** – Right-click nodes or topics for actions (Info, Stats, Echo,

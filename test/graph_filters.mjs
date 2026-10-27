@@ -15,6 +15,42 @@ const jsRoot = new URL('../ros2graph_explorer/web/static/js/', import.meta.url);
 const { GraphFilters, isVisible, subscribedTopics } = await import(
   await browserModuleUrl(new URL('state/graphFilters.js', jsRoot)));
 
+async function interactionFixture() {
+  const { InteractionController } = await import(await browserModuleUrl(new URL('interaction/interactionController.js', jsRoot)));
+  const { Store } = await import(await browserModuleUrl(new URL('state/store.js', jsRoot)));
+  const { ViewController } = await import(await browserModuleUrl(new URL('interaction/viewController.js', jsRoot)));
+  const canvas = Object.assign(new EventTarget(), {
+    getBoundingClientRect: () => ({ left: 0, top: 0 }),
+    setPointerCapture() {}, releasePointerCapture() {},
+  });
+  const previousDocument = globalThis.document;
+  globalThis.document = new EventTarget();
+  const store = new Store();
+  const view = new ViewController(store);
+  const controller = new InteractionController(canvas, store, view);
+  const geometry = x => ({ center: { x, y: 50 }, width: 30, height: 20 });
+  store.setGraph({
+    nodes: ['/publisher', '/subscriber', '/isolated'], topics: { '/data': [] },
+    edges: [{ start: '/publisher', end: '/data' }, { start: '/data', end: '/subscriber' }],
+  });
+  store.setScene({
+    nodes: new Map([['/publisher', geometry(40)], ['/subscriber', geometry(280)], ['/isolated', geometry(400)]]),
+    topics: new Map([['/data', geometry(160)]]),
+    edges: [{ tail: '/publisher', head: '/data', key: '/publisher->/data',
+      points: [{ x: 60, y: 50 }, { x: 140, y: 50 }] },
+    { tail: '/data', head: '/subscriber', key: '/data->/subscriber',
+      points: [{ x: 180, y: 50 }, { x: 260, y: 50 }] }],
+  });
+  const event = (x, y = 50, modifiers = {}) => ({
+    clientX: x, clientY: y, button: 0, pointerId: 1, preventDefault() {}, ...modifiers,
+  });
+  return { store, controller, view, event, close() {
+    controller.destroy();
+    if (previousDocument === undefined) delete globalThis.document;
+    else globalThis.document = previousDocument;
+  } };
+}
+
 test('namespace rules cover new entries, with boundary-safe nested overrides', () => {
   const rules = { '/robot/': false, '/robot/nav/': true, '/robot/nav/hidden': false };
   assert.equal(isVisible('/robot/camera', rules), false);
@@ -132,4 +168,53 @@ test('graph refresh toggle notifies subscribers on disable and re-enable', async
   settings.update({ graphAutoRefresh: false });
   settings.update({ graphAutoRefresh: true });
   assert.deepEqual(changes, [false, true]);
+});
+
+test('panning preserves selection and the selected item toggles off at its new position', async () => {
+  const { store, controller, view, event, close } = await interactionFixture();
+  try {
+    controller.handlePointerDown(event(40));
+    const selection = store.getSelection();
+    assert.ok(selection.nodes.has('/publisher'));
+    controller.handlePointerDown(event(500, 400));
+    controller.handlePointerMove(event(600, 450));
+    controller.handlePointerUp(event(600, 450));
+    assert.equal(view.isPanning(), false);
+    assert.equal(store.getView().offsetX, 100);
+    assert.deepEqual(store.getSelection(), selection);
+    controller.handlePointerDown(event(140, 100));
+    assert.equal(store.getSelection().nodes.size, 0);
+    assert.equal(store.getSelection().topics.size, 0);
+    assert.equal(store.getSelection().edges.size, 0);
+  } finally { close(); }
+});
+
+test('a second plain click deselects topic bubbles and topic edges', async () => {
+  const { store, controller, event, close } = await interactionFixture();
+  try {
+    for (const x of [160, 100]) {
+      controller.handlePointerDown(event(x));
+      assert.ok(store.getSelection().topics.has('/data'));
+      controller.handlePointerDown(event(x));
+      assert.equal(store.getSelection().topics.size, 0);
+      assert.equal(store.getSelection().edges.size, 0);
+    }
+  } finally { close(); }
+});
+
+test('background clicks and zoom retain selection; modifier clicks still add and toggle', async () => {
+  const { store, controller, event, close } = await interactionFixture();
+  try {
+    controller.handlePointerDown(event(40));
+    const initial = store.getSelection();
+    controller.handlePointerDown(event(500, 400));
+    controller.handlePointerUp(event(500, 400));
+    assert.deepEqual(store.getSelection(), initial);
+    controller.handlePointerDown(event(400, 50, { shiftKey: true }));
+    assert.ok(store.getSelection().nodes.has('/isolated'));
+    controller.handlePointerDown(event(400, 50, { ctrlKey: true }));
+    assert.deepEqual(store.getSelection(), initial);
+    controller.handleWheel(event(500, 400, { deltaY: -100 }));
+    assert.deepEqual(store.getSelection(), initial);
+  } finally { close(); }
 });
