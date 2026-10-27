@@ -88,6 +88,26 @@ interaction.
   side to avoid redundant sampling.
 ![Topic stats](doc/topic_stats.png)
 
+### Graph Filters
+
+Click **Filters** at the bottom right to choose which nodes and topics appear.
+Each section has searchable **Included** and **Hidden** namespace trees. Expand a
+namespace with its disclosure arrow. Check an item to include it, or uncheck it
+to hide it; it moves to the other tree immediately. A namespace checkbox applies
+to its whole branch, including items discovered later. Individual items can
+override a namespace rule. **Include all** and **Hide all** reset the entire
+section, including any individual exceptions; search only narrows the lists.
+
+Enable **Hide topics without subscribers** to remove topics with no subscribers
+in the full known graph. Hidden subscribers still count. These automatically
+hidden topics remain listed with a reason; turn off the option to include them.
+The option continues to apply when using **Include all** for topics.
+
+You can also right-click a node, topic, or topic edge and choose **Hide node** or
+**Hide topic**. Restore it from the Hidden tree. Choices are saved in this
+browser, and the graph layout compacts around visible items. Filtering changes
+the visualization only; ROS nodes, subscriptions, and other browsers are unaffected.
+
 ### Settings Menu
 
 Click the gear button in the header to open the full-screen settings overlay. The **General**
@@ -197,6 +217,24 @@ Returns the latest graph snapshot. Example:
   }
 }
 ```
+
+For a filtered layout, use `POST /graph?layout=auto|rqt|simple` with JSON such as:
+
+```json
+{
+  "nodes": {"/robot/": false, "/robot/camera": true},
+  "topics": {"/debug/": false},
+  "hideUnsubscribed": true
+}
+```
+
+Keys ending in `/` apply to a namespace; `/` sets the default for the whole
+section. Exact names override the nearest namespace rule. The response keeps
+the full `graph` inventory for the filter lists and tool overlays, while
+`graph.graphviz` describes only visible items. `visible_counts` reports the
+visible node, topic, and edge counts. The response fingerprint includes the
+filtered snapshot, so visibility changes trigger a fresh view fit. Requests
+do not change server-wide visibility.
 
 ### 2. Topic Tools
 
@@ -345,6 +383,12 @@ All responses use JSON; on failure you'll get an HTTP error code with an `error`
 ---
 
 ## Extending & Contributing
+
+Run Python tests with the package's `colcon test` command. Run the browser filter
+logic tests with `node test/graph_filters.mjs` (Node.js 18 or newer). The lint test
+uses `test/flake8_baseline.json` to recognize the 755 existing upstream diagnostics
+from commit `9a046bd` by file, diagnostic code, and source text. New diagnostics
+still fail; remove baseline entries as inherited code is cleaned up.
 
 - **Alternate clients** – Reuse the documented `/graph`, `/topic_tool`, and `/node_tool`
   endpoints to build CLI wrappers or custom dashboards.

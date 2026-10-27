@@ -5,11 +5,13 @@ export class GraphApi {
     this.client = client;
   }
 
-  async fetchGraph({ layoutMode } = {}) {
+  async fetchGraph({ layoutMode, filters } = {}) {
     const mode = normalizeLayoutMode(layoutMode);
     const timestamp = Date.now();
     const query = new URLSearchParams({ ts: String(timestamp), layout: mode });
-    return this.client.request(`/graph?${query.toString()}`, { cache: 'no-store' });
+    return this.client.request(`/graph?${query.toString()}`, {
+      cache: 'no-store', method: filters ? 'POST' : 'GET', body: filters,
+    });
   }
 }
 

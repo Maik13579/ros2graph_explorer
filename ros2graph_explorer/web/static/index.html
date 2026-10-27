@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Graph Explorer</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
@@ -49,7 +50,6 @@
         </button>
       </header>
       <div id="settingsOverlayBody" class="settings-overlay__body"></div>
-      </div>
     </div>
   </div>
   <div id="parameterEditor" class="parameter-editor hidden" aria-hidden="true">
@@ -100,6 +100,39 @@
       </footer>
     </form>
   </div>
+  <button id="filterBtn" class="filter-button" type="button" aria-haspopup="dialog"
+    aria-controls="filterDialog" aria-expanded="false">Filters</button>
+  <dialog id="filterDialog" class="filter-dialog" aria-labelledby="filterTitle">
+    <header class="filter-header">
+      <h2 id="filterTitle">Graph filters</h2>
+      <button type="button" class="icon-button" data-close aria-label="Close filters">×</button>
+    </header>
+    <div class="filter-body">
+      <p>Choose what appears in the graph. Expand namespaces or toggle an entire branch.
+        Changes apply immediately and are saved in this browser.</p>
+      <label class="filter-option"><input type="checkbox" id="hideUnsubscribed">
+        Hide topics without subscribers</label>
+      <p class="filter-hint">Subscriber counts use the full graph, including hidden nodes.</p>
+      <section data-filter-kind="nodes" aria-labelledby="filterNodesTitle">
+        <div class="filter-toolbar">
+          <h3 id="filterNodesTitle">Nodes</h3>
+          <button type="button" class="secondary" data-include-all>Include all</button>
+          <button type="button" class="secondary" data-hide-all>Hide all</button>
+        </div>
+        <input type="search" placeholder="Search nodes or namespaces…" aria-label="Search nodes or namespaces">
+        <div class="filter-columns"></div>
+      </section>
+      <section data-filter-kind="topics" aria-labelledby="filterTopicsTitle">
+        <div class="filter-toolbar">
+          <h3 id="filterTopicsTitle">Topics</h3>
+          <button type="button" class="secondary" data-include-all>Include all</button>
+          <button type="button" class="secondary" data-hide-all>Hide all</button>
+        </div>
+        <input type="search" placeholder="Search topics or namespaces…" aria-label="Search topics or namespaces">
+        <div class="filter-columns"></div>
+      </section>
+    </div>
+  </dialog>
   <div id="footer">Data source: /graph endpoint (refresh every 2s)</div>
   <script src="/js/main.js" type="module"></script>
 </body>

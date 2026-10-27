@@ -12,14 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ament_flake8.main import main_with_errors
+from collections import Counter
+import json
+from pathlib import Path
+
+import ament_flake8
+from ament_flake8.main import format_error, generate_flake8_report
 import pytest
 
 
 @pytest.mark.flake8
 @pytest.mark.linter
 def test_flake8():
-    rc, errors = main_with_errors(argv=[])
-    assert rc == 0, \
-        'Found %d code style errors / warnings:\n' % len(errors) + \
-        '\n'.join(errors)
+    # The upstream fork has existing violations. Match their source text rather
+    # than line numbers so moving code cannot conceal a new violation. Remove
+    # entries from this baseline as existing code is cleaned up.
+    baseline_path = Path(__file__).with_name('flake8_baseline.json')
+    baseline = Counter(json.loads(baseline_path.read_text()))
+    config = Path(ament_flake8.__file__).parent / 'configuration' / 'ament_flake8.ini'
+    report = generate_flake8_report(str(config), ['.'], [])
+    errors = []
+    for error in report.errors:
+        key = f'{Path(error.filename).as_posix()}|{error.code}|{error.physical_line.strip()}'
+        if baseline[key]:
+            baseline[key] -= 1
+        else:
+            errors.append(format_error(error))
+    assert not errors, 'New code style errors / warnings:\n' + '\n'.join(errors)

@@ -26,6 +26,144 @@
   --shadow-dialog: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
 
+.filter-button {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 25;
+  padding: 0.75rem 1.1rem;
+  border-radius: 24px;
+  box-shadow: var(--shadow-lg);
+}
+
+.filter-dialog {
+  width: min(900px, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid rgba(var(--accent-secondary-rgb), 0.4);
+  border-radius: 14px;
+  box-shadow: var(--shadow-dialog);
+}
+
+.filter-dialog::backdrop {
+  background: rgba(var(--bg-rgb), 0.55);
+}
+
+.filter-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  justify-content: space-between;
+}
+
+.filter-header h2,
+.filter-toolbar h3 {
+  margin: 0;
+}
+
+.filter-body {
+  padding: 0 1rem 1rem;
+}
+
+.filter-body > p,
+.filter-hint,
+.filter-empty {
+  font-size: 0.85rem;
+  color: rgba(var(--text-rgb), 0.75);
+}
+
+.filter-option,
+.filter-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.filter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.25rem 0 0.75rem;
+}
+
+.filter-toolbar h3 {
+  margin-right: auto;
+}
+
+.filter-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.filter-column {
+  min-width: 0;
+  border: 1px solid rgba(var(--text-rgb), 0.15);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.filter-column h4 {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid rgba(var(--text-rgb), 0.15);
+  font-size: 0.9rem;
+}
+
+.filter-tree {
+  height: clamp(140px, 22vh, 280px);
+  overflow: auto;
+  padding: 0.5rem;
+}
+
+.filter-entry {
+  width: max-content;
+  min-height: 1.9rem;
+  font-family: monospace;
+  font-size: 0.85rem;
+  padding-right: 0.4rem;
+}
+
+.filter-entry:hover {
+  background: rgba(var(--accent-secondary-rgb), 0.12);
+}
+
+.filter-entry input,
+.filter-option input {
+  flex-shrink: 0;
+  accent-color: var(--accent-secondary);
+}
+
+.filter-entry small {
+  opacity: 0.7;
+  font-family: sans-serif;
+}
+
+.filter-tree summary {
+  width: max-content;
+  cursor: pointer;
+}
+
+.filter-tree summary .filter-entry {
+  display: inline-flex;
+}
+
+.filter-branch {
+  margin-left: 1rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid rgba(var(--text-rgb), 0.15);
+}
+
+@media (max-width: 560px) {
+  .filter-columns { grid-template-columns: minmax(0, 1fr); }
+  .filter-tree { height: 160px; }
+}
+
 body[data-theme='dark'] {
   color-scheme: dark;
   --bg: #0d1117;

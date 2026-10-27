@@ -12,8 +12,6 @@ import {
   BASE_EDGE_COLOR,
 } from '../constants/index.js';
 
-const HIDDEN_NAME_PATTERNS = [/\/rosout\b/i];
-
 const createEmptyScene = () => ({
   nodes: new Map(),
   topics: new Map(),
@@ -126,13 +124,6 @@ export function computeFitView(bounds, canvasWidth, canvasHeight) {
   const offsetX = (canvasWidth - width * scale) / 2 - bounds.minX * scale;
   const offsetY = (canvasHeight - height * scale) / 2 - bounds.minY * scale;
   return { scale, offsetX, offsetY };
-}
-
-function isHiddenName(name) {
-  if (!name) {
-    return false;
-  }
-  return HIDDEN_NAME_PATTERNS.some(pattern => pattern.test(name));
 }
 
 function collectCandidateNames(primaryName, nodeInfo, labelLines) {
@@ -275,7 +266,7 @@ export function buildScene(graph, canvasWidth, canvasHeight) {
 
   effectiveLayout.nodes.forEach(nodeInfo => {
     const name = nodeInfo.name ?? nodeInfo.id ?? nodeInfo.label;
-    if (!name || isHiddenName(name)) {
+    if (!name) {
       return;
     }
     const center = scaler.toCanvas({ x: nodeInfo.x, y: nodeInfo.y });

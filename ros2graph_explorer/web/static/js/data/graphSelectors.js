@@ -1,12 +1,3 @@
-const HIDDEN_PATTERNS = [/\/rosout\b/i];
-
-function isHidden(name) {
-  if (!name) {
-    return false;
-  }
-  return HIDDEN_PATTERNS.some(pattern => pattern.test(name));
-}
-
 export function getNodeSummary(graph, nodeName) {
   if (!graph || !nodeName) {
     return null;
@@ -20,9 +11,9 @@ export function getNodeSummary(graph, nodeName) {
     if (!edge || typeof edge !== 'object') {
       return;
     }
-    if (edge.start === nodeName && topics[edge.end] && !isHidden(edge.end)) {
+    if (edge.start === nodeName && topics[edge.end]) {
       addQoS(publishes, edge.end, edge.qos);
-    } else if (edge.end === nodeName && topics[edge.start] && !isHidden(edge.start)) {
+    } else if (edge.end === nodeName && topics[edge.start]) {
       addQoS(subscribes, edge.start, edge.qos);
     }
   });
@@ -37,9 +28,6 @@ export function getNodeSummary(graph, nodeName) {
 
 export function getTopicSummary(graph, topicName) {
   if (!graph || !topicName) {
-    return null;
-  }
-  if (isHidden(topicName)) {
     return null;
   }
   const edges = Array.isArray(graph.edges) ? graph.edges : [];

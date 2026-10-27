@@ -19,6 +19,8 @@ import { TopicEchoController } from './controllers/topicEchoController.js';
 import { TopicStreamManager } from './controllers/topicStreamManager.js';
 import { TopicPlotController } from './controllers/topicPlotController.js';
 import { ThemeManager } from './ui/themeManager.js';
+import { GraphFilters } from './state/graphFilters.js';
+import { FilterPanel } from './ui/filterPanel.js';
 
 const canvas = document.getElementById('graphCanvas');
 const overlayCanvas = document.getElementById('overlayCanvas');
@@ -64,6 +66,11 @@ generalSettings.subscribe(state => {
 });
 
 const store = new Store();
+const graphFilters = new GraphFilters();
+new FilterPanel({
+  filters: graphFilters, store, button: document.getElementById('filterBtn'),
+  dialog: document.getElementById('filterDialog'),
+});
 const renderer = new GraphRenderer(canvas);
 const viewController = new ViewController(store);
 const api = new GraphApi();
@@ -124,6 +131,8 @@ themeManager.subscribe(handleThemeChange);
 handleThemeChange(themeManager.getState());
 
 let refreshTimer = null;
+let graphRequestId = 0;
+graphFilters.subscribe(() => { void loadGraph({ manual: true }); });
 
 function ensureSettingsForm(container) {
   if (!container) {
@@ -728,6 +737,7 @@ function getContextMenuItems(target) {
       { action: 'node-info', label: 'Info' },
       { action: 'node-parameters', label: 'Parameters' },
       { action: 'node-services', label: 'Services' },
+      { action: 'node-hide', label: 'Hide node' },
     ];
   }
   if (target.kind === 'topic' || target.kind === 'topic-edge') {
@@ -736,6 +746,7 @@ function getContextMenuItems(target) {
       { action: 'topic-stats', label: 'Statistics' },
       { action: 'topic-plot', label: 'Plot' },
       { action: 'topic-echo', label: 'Echo' },
+      { action: 'topic-hide', label: 'Hide topic' },
     ];
   }
   return [];
@@ -743,6 +754,12 @@ function getContextMenuItems(target) {
 
 function handleContextMenuAction(action, target) {
   if (!action) {
+    return;
+  }
+  if (action === 'node-hide' || action === 'topic-hide') {
+    const kind = action === 'node-hide' ? 'nodes' : 'topics';
+    const name = kind === 'nodes' ? target.nodeName ?? target.name : target.topicName ?? target.name;
+    graphFilters.setVisible(kind, name, false);
     return;
   }
   void actionController.handleAction(action, target);
@@ -764,17 +781,21 @@ function scheduleNextRefresh() {
 }
 
 async function loadGraph({ manual = false, silent = false } = {}) {
+  const requestId = ++graphRequestId;
   if (!silent) {
     statusBar.setBusy(true);
     store.setStatus(manual ? 'Refreshing graph…' : 'Fetching graph…');
   }
   try {
-    const payload = await api.fetchGraph({ layoutMode: generalSettingsState?.layoutMode });
+    const payload = await api.fetchGraph({
+      layoutMode: generalSettingsState?.layoutMode, filters: graphFilters.getState(),
+    });
+    if (requestId !== graphRequestId) return;
     const graph = payload.graph ?? payload;
     const changed = store.setGraph(graph, payload.fingerprint);
-    const nodeCount = graph.nodes?.length ?? 0;
-    const topicCount = Object.keys(graph.topics || {}).length;
-    const edgeCount = graph.edges?.length ?? 0;
+    const nodeCount = `${payload.visible_counts?.nodes ?? graph.nodes?.length ?? 0}/${graph.nodes?.length ?? 0}`;
+    const topicCount = `${payload.visible_counts?.topics ?? Object.keys(graph.topics || {}).length}/${Object.keys(graph.topics || {}).length}`;
+    const edgeCount = payload.visible_counts?.edges ?? graph.edges?.length ?? 0;
     const layoutSource = graph.graphviz?.source ?? 'none';
     const layoutEngine = graph.graphviz?.engine ? `graphviz/${graph.graphviz.engine}` : 'unavailable';
     const edgeStyle = generalSettingsState?.edgeLineStyle ?? DEFAULT_GENERAL_SETTINGS.edgeLineStyle;
@@ -799,11 +820,14 @@ async function loadGraph({ manual = false, silent = false } = {}) {
       interactionController.clearActiveSelections();
     }
   } catch (err) {
+    if (requestId !== graphRequestId) return;
     const message = err?.message || 'Unable to fetch graph';
     store.setStatus(`Error: ${message}`);
   } finally {
-    statusBar.setBusy(false);
-    scheduleNextRefresh();
+    if (requestId === graphRequestId) {
+      statusBar.setBusy(false);
+      scheduleNextRefresh();
+    }
   }
 }
 

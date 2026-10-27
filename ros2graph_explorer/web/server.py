@@ -17,6 +17,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from ..graph import GraphSnapshot
 
 from ..graph import GraphSnapshot, layout
+from ..graph.visibility import filter_snapshot, validate_filters
 
 
 class _ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
@@ -93,6 +94,8 @@ class GraphWebServer:
                     return
                 if path == '/node_tool':
                     parent._serve_node_tool(self, params, payload)
+                elif path == '/graph':
+                    parent._serve_graph(self, params, payload)
                 else:
                     self.send_error(404, 'Not Found')
 
@@ -167,7 +170,15 @@ class GraphWebServer:
         handler.end_headers()
         handler.wfile.write(data)
 
-    def _serve_graph(self, handler: BaseHTTPRequestHandler, params: Dict[str, list]) -> None:
+    def _serve_graph(
+        self, handler: BaseHTTPRequestHandler, params: Dict[str, list], filters=None,
+    ) -> None:
+        if filters is not None:
+            try:
+                validate_filters(filters)
+            except ValueError as exc:
+                self._send_json(handler, 400, {'error': str(exc)})
+                return
         snapshot, fingerprint, generated_at = self._latest()
         if snapshot is None or fingerprint is None:
             message = b'{"error":"graph not ready yet"}'
@@ -180,7 +191,9 @@ class GraphWebServer:
             return
 
         requested_mode = layout.normalize_layout_mode(params.get('layout', [''])[0])
-        payload = self._build_graph_payload(snapshot, fingerprint, generated_at, requested_mode)
+        payload = self._build_graph_payload(
+            snapshot, fingerprint, generated_at, requested_mode, filters,
+        )
         data = payload.encode('utf-8')
         handler.send_response(200)
         handler.send_header('Content-Type', 'application/json')
@@ -195,16 +208,18 @@ class GraphWebServer:
         fingerprint: str,
         generated_at: Optional[float],
         layout_mode: str,
+        filters=None,
     ) -> str:
         graph_dict = snapshot.to_dict()
+        visible = filter_snapshot(snapshot, filters) if filters is not None else snapshot
         layout_source = layout.LAYOUT_MODE_SIMPLE
         try:
             dot_source, graphviz_ids, layout_source = layout.generate_graphviz_with_mode(
-                snapshot,
+                visible,
                 layout_mode,
             )
         except Exception:  # pragma: no cover - defensive fallback
-            dot_source, graphviz_ids = layout.generate_simple_graphviz(snapshot)
+            dot_source, graphviz_ids = layout.generate_simple_graphviz(visible)
             layout_source = layout.LAYOUT_MODE_SIMPLE
 
         plain_layout = self._compute_graphviz_plain(dot_source)
@@ -220,9 +235,15 @@ class GraphWebServer:
         graph_dict['graphviz'] = graphviz_info
 
         payload = {
-            'fingerprint': fingerprint,
+            'fingerprint': (
+                f'{fingerprint}:{visible.fingerprint()}' if filters is not None else fingerprint
+            ),
             'generated_at': generated_at if generated_at is not None else time.time(),
             'graph': graph_dict,
+            'visible_counts': {
+                'nodes': len(visible.nodes), 'topics': len(visible.topics),
+                'edges': len(visible.edges),
+            },
         }
         return json.dumps(payload, separators=(',', ':'))
 
