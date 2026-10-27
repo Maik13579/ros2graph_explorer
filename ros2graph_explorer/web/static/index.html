@@ -110,10 +110,16 @@
     <div class="filter-body">
       <p>Choose what appears in the graph. Expand namespaces or toggle an entire branch.
         Changes apply immediately and are saved in this browser.</p>
-      <label class="filter-option"><input type="checkbox" id="hideUnsubscribed">
-        Hide topics without subscribers</label>
-      <p class="filter-hint">Subscriber counts use the full graph, including hidden nodes.</p>
-      <section data-filter-kind="nodes" aria-labelledby="filterNodesTitle">
+      <div class="settings-tabs" role="tablist" aria-label="Filter categories">
+        <button type="button" id="filterNodesTab" class="settings-tabs__tab"
+          role="tab" data-filter-tab="nodes" aria-controls="filterNodesPanel"
+          aria-selected="true" tabindex="0">Nodes</button>
+        <button type="button" id="filterTopicsTab" class="settings-tabs__tab"
+          role="tab" data-filter-tab="topics" aria-controls="filterTopicsPanel"
+          aria-selected="false" tabindex="-1">Topics</button>
+      </div>
+      <section id="filterNodesPanel" data-filter-kind="nodes" role="tabpanel"
+        aria-labelledby="filterNodesTab">
         <div class="filter-toolbar">
           <h3 id="filterNodesTitle">Nodes</h3>
           <button type="button" class="secondary" data-include-all>Include all</button>
@@ -122,7 +128,11 @@
         <input type="search" placeholder="Search nodes or namespaces…" aria-label="Search nodes or namespaces">
         <div class="filter-columns"></div>
       </section>
-      <section data-filter-kind="topics" aria-labelledby="filterTopicsTitle">
+      <section id="filterTopicsPanel" data-filter-kind="topics" role="tabpanel"
+        aria-labelledby="filterTopicsTab" hidden>
+        <label class="filter-option"><input type="checkbox" id="hideUnsubscribed">
+          Hide topics without subscribers</label>
+        <p class="filter-hint">Subscriber counts use the full graph, including hidden nodes.</p>
         <div class="filter-toolbar">
           <h3 id="filterTopicsTitle">Topics</h3>
           <button type="button" class="secondary" data-include-all>Include all</button>

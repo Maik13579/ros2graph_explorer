@@ -116,7 +116,7 @@
 }
 
 .filter-tree {
-  height: clamp(140px, 22vh, 280px);
+  height: clamp(240px, 46vh, 560px);
   overflow: auto;
   padding: 0.5rem;
 }
@@ -161,7 +161,7 @@
 
 @media (max-width: 560px) {
   .filter-columns { grid-template-columns: minmax(0, 1fr); }
-  .filter-tree { height: 160px; }
+  .filter-tree { height: 220px; }
 }
 
 body[data-theme='dark'] {

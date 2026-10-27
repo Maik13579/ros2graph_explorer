@@ -38,6 +38,32 @@ export class FilterPanel {
       filters.setHideUnsubscribed(this.hideUnsubscribed.checked);
     });
     for (const kind of ['nodes', 'topics']) this.createSection(kind);
+    const tabs = [...dialog.querySelectorAll('[data-filter-tab]')];
+    const activateTab = tab => {
+      tabs.forEach(button => {
+        const selected = button === tab;
+        button.setAttribute('aria-selected', String(selected));
+        button.tabIndex = selected ? 0 : -1;
+        button.classList.toggle('settings-tabs__tab--active', selected);
+        dialog.querySelector(`[data-filter-kind="${button.dataset.filterTab}"]`).hidden = !selected;
+      });
+    };
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => activateTab(tab));
+      tab.addEventListener('keydown', event => {
+        let next;
+        if (event.key === 'ArrowRight') next = tabs[(index + 1) % tabs.length];
+        else if (event.key === 'ArrowLeft') next = tabs[(index + tabs.length - 1) % tabs.length];
+        else if (event.key === 'Home') next = tabs[0];
+        else if (event.key === 'End') next = tabs[tabs.length - 1];
+        if (next) {
+          event.preventDefault();
+          activateTab(next);
+          next.focus();
+        }
+      });
+    });
+    activateTab(tabs[0]);
     filters.subscribe(() => this.render());
     store.subscribe('graph', ({ changed }) => {
       if (changed) this.render();

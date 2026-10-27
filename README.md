@@ -91,14 +91,16 @@ interaction.
 ### Graph Filters
 
 Click **Filters** at the bottom right to choose which nodes and topics appear.
-Each section has searchable **Included** and **Hidden** namespace trees. Expand a
+Switch between the **Nodes** and **Topics** tabs to give the active lists more
+space. Each tab keeps its search and namespace expansion state, with searchable
+**Included** and **Hidden** namespace trees. Expand a
 namespace with its disclosure arrow. Check an item to include it, or uncheck it
 to hide it; it moves to the other tree immediately. A namespace checkbox applies
 to its whole branch, including items discovered later. Individual items can
 override a namespace rule. **Include all** and **Hide all** reset the entire
 section, including any individual exceptions; search only narrows the lists.
 
-Enable **Hide topics without subscribers** to remove topics with no subscribers
+In the Topics tab, enable **Hide topics without subscribers** to remove topics with no subscribers
 in the full known graph. Hidden subscribers still count. These automatically
 hidden topics remain listed with a reason; turn off the option to include them.
 The option continues to apply when using **Include all** for topics.
