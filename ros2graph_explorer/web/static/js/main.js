@@ -782,7 +782,9 @@ function handleContextMenuAction(action, target) {
   if (action === 'node-hide' || action === 'topic-hide') {
     const kind = action === 'node-hide' ? 'nodes' : 'topics';
     const name = kind === 'nodes' ? target.nodeName ?? target.name : target.topicName ?? target.name;
-    graphFilters.setVisible(kind, name, false);
+    if (!graphFilters.setVisible(kind, name, false)) {
+      store.setStatus('Cannot hide this layout group: choose a ROS name in Filters.');
+    }
     return;
   }
   void actionController.handleAction(action, target);

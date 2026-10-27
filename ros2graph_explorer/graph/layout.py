@@ -7,7 +7,8 @@ from typing import Dict, Iterable, List, Set, Tuple
 from .snapshot import GraphSnapshot
 
 CLUSTER_NAMESPACE_LEVEL = 0
-GROUP_TF_NODES = True
+# TF topics need separate identities for topic info, streaming, and filtering.
+GROUP_TF_NODES = False
 GROUP_IMAGE_NODES = True
 ACCUMULATE_ACTIONS = True
 HIDE_DYNAMIC_RECONFIGURE = True

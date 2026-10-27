@@ -218,3 +218,67 @@ test('background clicks and zoom retain selection; modifier clicks still add and
     assert.deepEqual(store.getSelection(), initial);
   } finally { close(); }
 });
+
+test('synthetic layout IDs cannot poison topic filters, and old invalid rules are discarded', () => {
+  const storage = { value: JSON.stringify({ nodes: {}, topics: { n_n__tf: false, '/tf_static': false } }),
+    getItem() { return this.value; }, setItem(key, value) { this.value = value; } };
+  const filters = new GraphFilters(storage);
+  assert.deepEqual(filters.getState().topics, { '/tf_static': false });
+  let updates = 0;
+  filters.subscribe(() => updates++);
+  assert.equal(filters.setVisible('topics', 'n_n__tf', false), false);
+  assert.equal(filters.setVisible('topics', undefined, false), false);
+  assert.equal(filters.setVisible('topics', '/tf', 'false'), false);
+  assert.equal(updates, 0);
+  assert.equal(filters.setVisible('topics', '/tf', false), true);
+  assert.deepEqual(filters.getState().topics, { '/tf_static': false, '/tf': false });
+  assert.deepEqual(new GraphFilters(storage).getState(), filters.getState());
+});
+
+test('TF topics resolve to real ROS names for info and context-menu hiding', async () => {
+  const { buildScene } = await import(await browserModuleUrl(new URL('render/sceneBuilder.js', jsRoot)));
+  const { getTopicSummary } = await import(await browserModuleUrl(new URL('data/graphSelectors.js', jsRoot)));
+  const { store, controller, event, close } = await interactionFixture();
+  const graph = {
+    nodes: ['/broadcaster', '/listener'],
+    topics: { '/tf': ['tf2_msgs/msg/TFMessage'], '/tf_static': ['tf2_msgs/msg/TFMessage'] },
+    edges: [{ start: '/broadcaster', end: '/tf' }, { start: '/tf', end: '/listener' },
+      { start: '/broadcaster', end: '/tf_static' }, { start: '/tf_static', end: '/listener' }],
+    graphviz: {
+      ids: { '/broadcaster': 'n___broadcaster', '/listener': 'n___listener', '/tf': 't___tf', '/tf_static': 't___tf_static' },
+      plain: [
+        'graph 1 5 3',
+        'node n___broadcaster 0.5 1.5 0.75 0.5 /broadcaster solid ellipse black white',
+        'node n___listener 4 1.5 0.75 0.5 /listener solid ellipse black white',
+        'node t___tf 2 2 0.75 0.5 /tf solid box black white',
+        'node t___tf_static 2 1 0.75 0.5 /tf_static solid box black white',
+        'edge n___broadcaster t___tf 2 0.875 1.5 1.625 2 solid black',
+        'edge t___tf n___listener 2 2.375 2 3.625 1.5 solid black',
+        'edge n___broadcaster t___tf_static 2 0.875 1.5 1.625 1 solid black',
+        'edge t___tf_static n___listener 2 2.375 1 3.625 1.5 solid black',
+        'stop',
+      ].join('\n'),
+    },
+  };
+  try {
+    const scene = buildScene(graph, 1200, 800);
+    store.setGraph(graph);
+    store.setScene(scene);
+    assert.deepEqual([...scene.topics.keys()], ['/tf', '/tf_static']);
+    assert.equal(scene.edges.length, 4);
+    const filters = new GraphFilters(null);
+    let menuTarget;
+    controller.options.contextMenu = { toggle(open, point, target) { menuTarget = target; } };
+    for (const topic of ['/tf', '/tf_static']) {
+      const { center } = scene.topics.get(topic);
+      controller.handleContextMenu(event(center.x, center.y));
+      assert.equal(menuTarget.topicName, topic);
+      const info = getTopicSummary(graph, menuTarget.topicName);
+      assert.deepEqual(info.types, ['tf2_msgs/msg/TFMessage']);
+      assert.equal(info.publishers[0].name, '/broadcaster');
+      assert.equal(info.subscribers[0].name, '/listener');
+      assert.equal(filters.setVisible('topics', menuTarget.topicName, false), true);
+    }
+    assert.deepEqual(filters.getState().topics, { '/tf': false, '/tf_static': false });
+  } finally { close(); }
+});

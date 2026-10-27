@@ -50,6 +50,8 @@ export class GraphFilters {
   }
 
   setVisible(kind, path, visible) {
+    if (!['nodes', 'topics'].includes(kind) || typeof path !== 'string' ||
+        !path.startsWith('/') || typeof visible !== 'boolean') return false;
     const rules = this.state[kind];
     // A namespace toggle also clears overrides underneath it.
     if (path.endsWith('/')) {
@@ -59,6 +61,7 @@ export class GraphFilters {
     }
     rules[path] = visible;
     this.notify();
+    return true;
   }
 
   setHideUnsubscribed(value) {
